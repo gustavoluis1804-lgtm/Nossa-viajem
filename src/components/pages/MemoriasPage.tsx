@@ -8,6 +8,7 @@ import { useSchedule } from "@/hooks/useSchedule";
 import { itemDateLabel } from "@/lib/time";
 import { AddPhotoButton, MemorySheet, PhotoViewer } from "../shared";
 import { EmptyState, PageHeader, stagger } from "../ui";
+import { PlaceImage } from "../PlaceImage";
 
 export function MemoriasPage({ go }: { go: (r: Route) => void }) {
   const { state } = useApp();
@@ -59,11 +60,17 @@ export function MemoriasPage({ go }: { go: (r: Route) => void }) {
                 className="relative block h-28 w-full text-left"
                 onClick={() => go({ name: "place", id: item.id })}
               >
-                {cover ? (
+                {photos.length > 0 ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={cover} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-[#221741] to-[#0d0a17]" />
+                  <PlaceImage
+                    fallback={item.image}
+                    wikiTitle={item.wikiTitle}
+                    search={item.imageSearch}
+                    alt={item.title}
+                    className="h-full w-full object-cover"
+                  />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0b0814] via-[#0b0814]/30 to-transparent" />
                 <div className="absolute bottom-3 left-4">

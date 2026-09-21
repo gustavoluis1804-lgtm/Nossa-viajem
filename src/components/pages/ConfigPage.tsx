@@ -16,6 +16,10 @@ import {
   Upload,
   UtensilsCrossed,
   Wallet,
+  Cloud,
+  Copy,
+  LogOut,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -47,12 +51,22 @@ export function ConfigPage({ go, onBack }: { go: (r: Route) => void; onBack: () 
     resetProgress,
     resetAll,
     pushToast,
+    sync,
+    signUpSync,
+    signInSync,
+    signOutSync,
+    createSharedTrip,
+    joinSharedTrip,
   } = useApp();
   const sched = useSchedule(60000);
 
   const [editing, setEditing] = useState<Editing>(null);
   const [confirmKind, setConfirmKind] = useState<"progress" | "all" | "relock" | null>(null);
   const [perm, setPerm] = useState<string>("…");
+  const [syncEmail, setSyncEmail] = useState("");
+  const [syncPassword, setSyncPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [syncBusy, setSyncBusy] = useState(false);
   const backupRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -64,6 +78,85 @@ export function ConfigPage({ go, onBack }: { go: (r: Route) => void; onBack: () 
   return (
     <div className="pb-32">
       <BackHeader title="Configurações" subtitle="ajustes e administração" onBack={onBack} />
+
+      <section className="animate-fade-up mt-5 px-5">
+        <p className="label">Conectar os dois celulares</p>
+        <div className="card p-4 !shadow-none">
+          <div className="flex items-center gap-3">
+            <RowIcon icon={sync.status === "online" ? Cloud : Users} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[13.5px] font-bold">
+                {sync.status === "online" ? "Sincronização ativa" : sync.signedIn ? "Conta conectada" : "Ainda não conectado"}
+              </p>
+              <p className="mt-0.5 text-[11.5px] text-[#a6a0cc]">
+                {sync.status === "online"
+                  ? "Alterações feitas em um aparelho aparecem no outro."
+                  : sync.signedIn
+                    ? "Crie a viagem compartilhada ou entre com o código do outro aparelho."
+                    : "Entre em uma conta em cada celular para compartilhar os mesmos dados."}
+              </p>
+            </div>
+          </div>
+
+          {!sync.signedIn ? (
+            <div className="mt-4 space-y-2.5">
+              <input className="input" type="email" placeholder="E-mail" value={syncEmail} onChange={(e) => setSyncEmail(e.target.value)} />
+              <input className="input" type="password" placeholder="Senha (mín. 6 caracteres)" value={syncPassword} onChange={(e) => setSyncPassword(e.target.value)} />
+              <div className="grid grid-cols-2 gap-2">
+                <button className="btn btn-soft" disabled={syncBusy} onClick={async () => {
+                  setSyncBusy(true);
+                  const r = await signInSync(syncEmail, syncPassword);
+                  setSyncBusy(false);
+                  pushToast(r.ok ? "Conectado" : "Não foi possível entrar", r.message);
+                }}>Entrar</button>
+                <button className="btn btn-primary" disabled={syncBusy} onClick={async () => {
+                  setSyncBusy(true);
+                  const r = await signUpSync(syncEmail, syncPassword);
+                  setSyncBusy(false);
+                  pushToast(r.ok ? "Conta criada" : "Não foi possível criar", r.message);
+                }}>Criar conta</button>
+              </div>
+            </div>
+          ) : sync.spaceId ? (
+            <div className="mt-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8f88bd]">Código para o outro celular</p>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="min-w-0 flex-1 break-all text-[12px] font-bold text-white">{sync.inviteCode}</code>
+                <button className="btn btn-soft !p-2.5" aria-label="Copiar código" onClick={async () => {
+                  if (sync.inviteCode) await navigator.clipboard.writeText(sync.inviteCode);
+                  pushToast("Código copiado");
+                }}><Copy size={15} /></button>
+              </div>
+              <p className="mt-2 text-[11px] text-[#a6a0cc]">Use este código somente no outro celular.</p>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              <button className="btn btn-primary w-full" disabled={syncBusy} onClick={async () => {
+                setSyncBusy(true);
+                const r = await createSharedTrip();
+                setSyncBusy(false);
+                pushToast(r.ok ? "Viagem compartilhada criada" : "Não foi possível criar", r.message);
+              }}>Criar nossa viagem compartilhada</button>
+              <div className="flex items-center gap-2">
+                <input className="input flex-1" placeholder="Código do outro celular" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
+                <button className="btn btn-soft whitespace-nowrap" disabled={syncBusy || !inviteCode.trim()} onClick={async () => {
+                  setSyncBusy(true);
+                  const r = await joinSharedTrip(inviteCode);
+                  setSyncBusy(false);
+                  pushToast(r.ok ? "Celular conectado" : "Não foi possível conectar", r.message);
+                }}>Entrar</button>
+              </div>
+            </div>
+          )}
+
+          {sync.signedIn && (
+            <button className="mt-4 flex items-center gap-2 text-[11.5px] font-semibold text-[#a6a0cc]" onClick={() => void signOutSync()}>
+              <LogOut size={14} /> Sair da conta {sync.email ? `(${sync.email})` : ""}
+            </button>
+          )}
+          {sync.error && <p className="mt-3 text-[11px] text-red-300">{sync.error}</p>}
+        </div>
+      </section>
 
       {/* preferências */}
       <section className="animate-fade-up px-5" style={stagger(1)}>

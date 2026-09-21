@@ -30,6 +30,7 @@ import {
   randomDeviceKey,
 } from "@/services/security";
 import { haptic } from "@/services/haptics";
+import { supabase } from "@/services/supabase";
 
 const STORAGE_KEY = "nossa-viagem:v1";
 const DEVICE_KEY = "nossa-viagem:device-key";
@@ -56,7 +57,7 @@ const defaultHiddenNotes: Record<string, string> = {
   "d2-afro": "Quero guardar não só o que vimos aqui, mas também o jeito que vivemos esse momento juntos.",
   "d2-liberdade": "Guarda um pedacinho desse dia. Eu vou guardar o jeito que você sorriu aqui.",
   "d2-aclimacao": "A melhor parte da pausa é não precisar ir a lugar nenhum para estar bem com você.",
-  "d2-secreto": "Essa vista era a surpresa. Mas o meu lugar favorito nesse dia continuou sendo ao seu lado.",
+  "d2-secreto": "Essa vista fecha o nosso dia lá no alto. Mesmo assim, o meu lugar favorito continua sendo ao seu lado.",
   "d2-jantar": "Nossa primeira viagem está terminando, mas essa é só a primeira de muitas.",
 };
 
@@ -149,12 +150,28 @@ export function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+export interface SyncInfo {
+  status: "offline" | "connecting" | "online" | "error";
+  signedIn: boolean;
+  email?: string;
+  spaceId?: string;
+  inviteCode?: string;
+  lastSync?: number;
+  error?: string;
+}
+
 interface StoreCtx {
   state: AppState;
   secret: SecretInfo | null;
   hydrated: boolean;
   toasts: Toast[];
   pendingNote: { itemId: string; text: string } | null;
+  sync: SyncInfo;
+  signUpSync: (email: string, password: string) => Promise<{ ok: boolean; message: string }>;
+  signInSync: (email: string, password: string) => Promise<{ ok: boolean; message: string }>;
+  signOutSync: () => Promise<void>;
+  createSharedTrip: () => Promise<{ ok: boolean; code?: string; message: string }>;
+  joinSharedTrip: (code: string) => Promise<{ ok: boolean; message: string }>;
   pushToast: (title: string, body?: string, kind?: Toast["kind"]) => void;
   dismissToast: (id: string) => void;
   dismissHiddenNote: () => void;
@@ -198,6 +215,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [pendingNote, setPendingNote] = useState<{ itemId: string; text: string } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncRevision = useRef(0);
+  const applyingRemote = useRef(false);
+  const [sync, setSync] = useState<SyncInfo>({ status: "offline", signedIn: false });
 
   useEffect(() => {
     const loaded = loadState();
@@ -229,6 +250,128 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [state, hydrated]);
 
+  const loadSharedSpace = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) {
+      setSync({ status: "offline", signedIn: false });
+      return;
+    }
+
+    setSync((v) => ({ ...v, status: "connecting", signedIn: true, email: user.email ?? undefined, error: undefined }));
+    const { data: membership, error: memberError } = await supabase
+      .from("trip_members")
+      .select("space_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (memberError) {
+      setSync((v) => ({ ...v, status: "error", error: memberError.message }));
+      return;
+    }
+    if (!membership?.space_id) {
+      setSync({ status: "offline", signedIn: true, email: user.email ?? undefined });
+      return;
+    }
+
+    const spaceId = membership.space_id as string;
+    const [{ data: space }, { data: shared, error: sharedError }] = await Promise.all([
+      supabase.from("trip_spaces").select("invite_code").eq("id", spaceId).single(),
+      supabase.from("shared_trip_state").select("data,revision,updated_at").eq("space_id", spaceId).single(),
+    ]);
+    if (sharedError) {
+      setSync((v) => ({ ...v, status: "error", error: sharedError.message }));
+      return;
+    }
+
+    syncRevision.current = Number(shared?.revision ?? 0);
+    const remote = shared?.data && typeof shared.data === "object" ? shared.data : {};
+    if (Object.keys(remote as object).length > 0) {
+      applyingRemote.current = true;
+      setState(normalizeState(remote));
+      queueMicrotask(() => { applyingRemote.current = false; });
+    } else {
+      const local = loadState();
+      const { data: nextRevision, error: saveError } = await supabase.rpc("save_shared_trip", {
+        p_space_id: spaceId,
+        p_data: local,
+        p_revision: syncRevision.current,
+      });
+      if (!saveError) syncRevision.current = Number(nextRevision ?? 1);
+    }
+    setSync({
+      status: "online",
+      signedIn: true,
+      email: user.email ?? undefined,
+      spaceId,
+      inviteCode: space?.invite_code ?? undefined,
+      lastSync: Date.now(),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    void loadSharedSpace();
+    const { data: authSub } = supabase.auth.onAuthStateChange(() => {
+      void loadSharedSpace();
+    });
+    return () => authSub.subscription.unsubscribe();
+  }, [hydrated, loadSharedSpace]);
+
+  useEffect(() => {
+    if (!sync.spaceId || !sync.signedIn) return;
+    const channel = supabase
+      .channel(`shared-trip-${sync.spaceId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "shared_trip_state", filter: `space_id=eq.${sync.spaceId}` },
+        (payload) => {
+          const row = payload.new as { data?: unknown; revision?: number };
+          const revision = Number(row.revision ?? 0);
+          if (revision <= syncRevision.current) return;
+          syncRevision.current = revision;
+          applyingRemote.current = true;
+          setState(normalizeState(row.data));
+          setSync((v) => ({ ...v, status: "online", lastSync: Date.now(), error: undefined }));
+          queueMicrotask(() => { applyingRemote.current = false; });
+        }
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [sync.spaceId, sync.signedIn]);
+
+  useEffect(() => {
+    if (!hydrated || !sync.spaceId || !sync.signedIn || applyingRemote.current) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(async () => {
+      const { data: nextRevision, error } = await supabase.rpc("save_shared_trip", {
+        p_space_id: sync.spaceId,
+        p_data: state,
+        p_revision: syncRevision.current,
+      });
+      if (!error) {
+        syncRevision.current = Number(nextRevision ?? syncRevision.current + 1);
+        setSync((v) => ({ ...v, status: "online", lastSync: Date.now(), error: undefined }));
+        return;
+      }
+      if (error.message.includes("CONFLICT")) {
+        const { data: latest } = await supabase
+          .from("shared_trip_state")
+          .select("data,revision")
+          .eq("space_id", sync.spaceId)
+          .single();
+        if (latest) {
+          syncRevision.current = Number(latest.revision ?? 0);
+          applyingRemote.current = true;
+          setState(normalizeState(latest.data));
+          queueMicrotask(() => { applyingRemote.current = false; });
+        }
+      } else {
+        setSync((v) => ({ ...v, status: "error", error: error.message }));
+      }
+    }, 650);
+    return () => { if (syncTimer.current) clearTimeout(syncTimer.current); };
+  }, [state, hydrated, sync.spaceId, sync.signedIn]);
+
   const dismissToast = useCallback((id: string) => {
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
@@ -248,6 +391,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       state,
       secret,
+      sync,
+      signUpSync: async (email, password) => {
+        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+        if (error) return { ok: false, message: error.message };
+        if (!data.session) return { ok: true, message: "Conta criada. Confirme o e-mail e depois entre no app." };
+        await loadSharedSpace();
+        return { ok: true, message: "Conta criada e conectada." };
+      },
+      signInSync: async (email, password) => {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (error) return { ok: false, message: error.message };
+        await loadSharedSpace();
+        return { ok: true, message: "Conta conectada." };
+      },
+      signOutSync: async () => {
+        await supabase.auth.signOut();
+        syncRevision.current = 0;
+        setSync({ status: "offline", signedIn: false });
+      },
+      createSharedTrip: async () => {
+        const { data, error } = await supabase.rpc("create_trip_space");
+        if (error) return { ok: false, message: error.message };
+        const row = Array.isArray(data) ? data[0] : data;
+        await loadSharedSpace();
+        return { ok: true, code: row?.invite_code, message: "Viagem compartilhada criada." };
+      },
+      joinSharedTrip: async (code) => {
+        const { error } = await supabase.rpc("join_trip_space", { code: code.trim().toLowerCase() });
+        if (error) return { ok: false, message: error.message };
+        await loadSharedSpace();
+        return { ok: true, message: "Este celular entrou na viagem compartilhada." };
+      },
       hydrated,
       toasts,
       pendingNote,
@@ -400,7 +575,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [state, secret, hydrated, toasts, pendingNote, pushToast, dismissToast, update]
+    [state, secret, hydrated, toasts, pendingNote, pushToast, dismissToast, update, sync, loadSharedSpace]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

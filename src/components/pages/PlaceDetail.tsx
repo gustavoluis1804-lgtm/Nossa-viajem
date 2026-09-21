@@ -22,6 +22,7 @@ import { durationMin, fmtDuration, fmtRange, itemDateLabel } from "@/lib/time";
 import { AddPhotoButton, AttachmentButton, MemorySheet, PhotoViewer } from "../shared";
 import { CategoryIcon, StatusChip, cn } from "../ui";
 import { Sparkles } from "../Sparkles";
+import { PlaceImage } from "../PlaceImage";
 
 export function PlaceDetail({
   id,
@@ -92,10 +93,15 @@ function OpenedPlace({
     <div className="pb-32">
       {/* hero */}
       <div className="relative">
-        {item.image ? (
+        {item.image || item.wikiTitle || item.imageSearch ? (
           <div className="relative h-60 overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+            <PlaceImage
+              fallback={item.image}
+              wikiTitle={item.wikiTitle}
+              search={item.imageSearch}
+              alt={item.title}
+              className="h-full w-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-[#07060c] via-[#07060c]/25 to-[#07060c]/45" />
           </div>
         ) : (

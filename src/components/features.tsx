@@ -74,7 +74,7 @@ export function InstallCard() {
         <div className="space-y-4 text-[13px] leading-relaxed text-[#b3add6]">
           <p><strong className="text-white">Android · Chrome:</strong> toque no menu ⋮ e escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.</p>
           <p><strong className="text-white">iPhone · Safari:</strong> toque em Compartilhar e depois em “Adicionar à Tela de Início”.</p>
-          <p className="text-[11.5px] text-[#8882ad]">Depois de abrir uma vez, roteiro, checklist, gastos, memórias e surpresa continuam funcionando sem internet.</p>
+          <p className="text-[11.5px] text-[#8882ad]">Depois de abrir uma vez, roteiro, checklist, gastos e memórias continuam funcionando sem internet.</p>
         </div>
       </Sheet>
     </>

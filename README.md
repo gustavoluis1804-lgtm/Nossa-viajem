@@ -33,3 +33,16 @@ Para testar o build web estático:
 ```bash
 npm run build
 ```
+
+## Sincronização entre dois celulares
+
+Esta versão usa o Supabase do projeto `nossa-viagem` e sincroniza o estado da viagem em tempo real.
+
+1. Em cada celular, abra **Mais → Configurações → Conectar os dois celulares**.
+2. Crie uma conta diferente em cada aparelho (ou entre em contas já criadas).
+3. No primeiro celular, toque em **Criar nossa viagem compartilhada**.
+4. Copie o código exibido.
+5. No segundo celular, cole esse código e toque em **Entrar**.
+6. Quando aparecer **Sincronização ativa**, roteiro, progresso, checklist, gastos, memórias e configurações passam a usar o mesmo estado compartilhado.
+
+A chave usada no app é a chave pública/publishable do Supabase. Nenhuma `service_role` é embutida no APK.

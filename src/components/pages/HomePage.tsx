@@ -34,6 +34,7 @@ import { DelaySheet } from "../shared";
 import { ShareTripButton, WeatherCard } from "../features";
 import { ProgressBar, StatusChip, cn, stagger } from "../ui";
 import { Sparkles } from "../Sparkles";
+import { PlaceImage } from "../PlaceImage";
 
 export function HomePage({ go }: { go: (r: Route) => void }) {
   const { state } = useApp();
@@ -272,10 +273,15 @@ function NextMomentCard({ go, onOpenDelay }: { go: (r: Route) => void; onOpenDel
 
   return (
     <div className="card relative overflow-hidden">
-      {item.image && !locked && (
+      {(item.image || item.wikiTitle || item.imageSearch) && !locked && (
         <div className="relative h-32 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.image} alt="" className="h-full w-full object-cover" />
+          <PlaceImage
+            fallback={item.image}
+            wikiTitle={item.wikiTitle}
+            search={item.imageSearch}
+            alt={item.title}
+            className="h-full w-full object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0b0814] via-[#0b0814]/35 to-transparent" />
         </div>
       )}

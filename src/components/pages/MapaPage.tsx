@@ -7,6 +7,7 @@ import { useSchedule } from "@/hooks/useSchedule";
 import { fmtRange } from "@/lib/time";
 import type { TripItem } from "@/lib/types";
 import { PageHeader, cn, stagger } from "../ui";
+import { PlaceImage } from "../PlaceImage";
 
 export function MapaPage() {
   const { state, pushToast } = useApp();
@@ -124,10 +125,15 @@ export function MapaPage() {
               style={stagger(i + 2, 40)}
               onClick={() => setSelectedId(item.id)}
             >
-              {item.image ? (
+              {item.image || item.wikiTitle || item.imageSearch ? (
                 <div className="relative h-14 w-14 flex-none overflow-hidden rounded-2xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.image} alt="" className="h-full w-full object-cover" />
+                  <PlaceImage
+                    fallback={item.image}
+                    wikiTitle={item.wikiTitle}
+                    search={item.imageSearch}
+                    alt={item.title}
+                    className="h-full w-full object-cover"
+                  />
                   <span className="font-display absolute top-1 left-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-[10.5px] font-bold text-[#c4b5fd]">
                     {numero}
                   </span>

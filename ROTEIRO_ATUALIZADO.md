@@ -7,10 +7,10 @@
 - 06:30–06:50 — café da manhã
 - 06:50–07:15 — deslocamento ao Parque Ibirapuera
 - 07:15–08:15 — Parque Ibirapuera — lagos e jardins
-- 08:15–09:00 — deslocamento ao Zoológico
-- 09:00–10:00 — Zoológico de São Paulo
-- 10:00–10:40 — deslocamento ao Museu Afro Brasil
-- 10:40–11:40 — Museu Afro Brasil Emanoel Araujo
+- 08:15–09:00 — deslocamento ao Museu Afro Brasil
+- 09:00–10:00 — Museu Afro Brasil Emanoel Araujo
+- 10:00–10:40 — deslocamento ao Zoológico
+- 10:40–11:40 — Zoológico de São Paulo
 - 11:40–12:00 — deslocamento à Liberdade
 - 12:00–15:00 — Liberdade (horário original mantido)
 - 15:00–15:20 — deslocamento

@@ -7,6 +7,7 @@ import { fmtBRL, fmtRange, TRIP_END, TRIP_START } from "@/lib/time";
 import { IMG } from "@/data/trip";
 import { stagger } from "./ui";
 import { Sparkles } from "./Sparkles";
+import { PlaceImage } from "./PlaceImage";
 
 /** "Relembrar nossa viagem" — o álbum depois do retorno. */
 export function Recap({ onBack }: { onBack: () => void }) {
@@ -65,11 +66,17 @@ export function Recap({ onBack }: { onBack: () => void }) {
             return (
               <div key={m.id} className="card flex items-center gap-3.5 p-3">
                 <div className="relative h-14 w-14 flex-none overflow-hidden rounded-2xl">
-                  {cover ? (
+                  {photos.length > 0 ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={cover} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full bg-gradient-to-br from-[#221741] to-[#0d0a17]" />
+                    <PlaceImage
+                      fallback={m.image}
+                      wikiTitle={m.wikiTitle}
+                      search={m.imageSearch}
+                      alt={m.title}
+                      className="h-full w-full object-cover"
+                    />
                   )}
                   {done && (
                     <span className="absolute inset-0 grid place-items-center bg-black/45">

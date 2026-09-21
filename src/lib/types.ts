@@ -21,6 +21,8 @@ export interface TripItem {
   address?: string;
   mapQuery?: string;
   image?: string;
+  wikiTitle?: string;
+  imageSearch?: string;
   tips?: string[];
   secret?: boolean;
   locked?: boolean;

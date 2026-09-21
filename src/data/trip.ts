@@ -89,38 +89,16 @@ export const ITINERARY: TripItem[] = [
     address: "Parque Ibirapuera — São Paulo",
     mapQuery: "Parque Ibirapuera, São Paulo",
     image: IMG.pavilhao,
+    wikiTitle: "Parque Ibirapuera",
+    imageSearch: "Parque Ibirapuera São Paulo lago jardins",
     tips: ["Caminhar sem pressa", "Aproveitar os lagos e jardins", "Tirar algumas fotos juntos"],
-  },
-  {
-    id: "d2-transp-zoo",
-    group: "21",
-    dayOffset: 1,
-    start: "08:15",
-    end: "09:00",
-    title: "Deslocamento até o Zoológico",
-    category: "transport",
-  },
-  {
-    id: "d2-zoologico",
-    group: "21",
-    dayOffset: 1,
-    start: "09:00",
-    end: "10:00",
-    title: "Zoológico de São Paulo",
-    description:
-      "Uma visita mais enxuta, escolhendo os espaços que vocês mais querem ver para manter o restante do roteiro no horário.",
-    category: "place",
-    moment: true,
-    address: "Zoológico de São Paulo — São Paulo",
-    mapQuery: "Zoológico de São Paulo",
-    tips: ["Escolher os animais que mais querem ver", "Evitar tentar conhecer o zoológico inteiro", "Separar alguns minutos para fotos"],
   },
   {
     id: "d2-transp-afro",
     group: "21",
     dayOffset: 1,
-    start: "10:00",
-    end: "10:40",
+    start: "08:15",
+    end: "09:00",
     title: "Deslocamento até o Museu Afro Brasil",
     category: "transport",
   },
@@ -128,8 +106,8 @@ export const ITINERARY: TripItem[] = [
     id: "d2-afro",
     group: "21",
     dayOffset: 1,
-    start: "10:40",
-    end: "11:40",
+    start: "09:00",
+    end: "10:00",
     title: "Museu Afro Brasil Emanoel Araujo",
     description:
       "Cerca de uma hora para conhecer as áreas que mais chamarem atenção, sem transformar a visita em uma corrida.",
@@ -137,7 +115,35 @@ export const ITINERARY: TripItem[] = [
     moment: true,
     address: "Parque Ibirapuera — São Paulo",
     mapQuery: "Museu Afro Brasil Emanoel Araujo",
+    wikiTitle: "Museu Afro Brasil",
+    imageSearch: "Museu Afro Brasil Emanoel Araujo São Paulo",
     tips: ["Escolher algumas salas para ver com calma", "Guardar um pouco de tempo para a saída", "Registrar o momento sem pressa"],
+  },
+  {
+    id: "d2-transp-zoo",
+    group: "21",
+    dayOffset: 1,
+    start: "10:00",
+    end: "10:40",
+    title: "Deslocamento até o Zoológico",
+    category: "transport",
+  },
+  {
+    id: "d2-zoologico",
+    group: "21",
+    dayOffset: 1,
+    start: "10:40",
+    end: "11:40",
+    title: "Zoológico de São Paulo",
+    description:
+      "Uma visita mais enxuta, escolhendo os espaços que vocês mais querem ver para manter o restante do roteiro no horário.",
+    category: "place",
+    moment: true,
+    address: "Zoológico de São Paulo — São Paulo",
+    mapQuery: "Zoológico de São Paulo",
+    wikiTitle: "Zoológico de São Paulo",
+    imageSearch: "Zoológico de São Paulo parque zoológico",
+    tips: ["Escolher os animais que mais querem ver", "Evitar tentar conhecer o zoológico inteiro", "Separar alguns minutos para fotos"],
   },
   {
     id: "d2-transp-liberdade",
@@ -161,6 +167,8 @@ export const ITINERARY: TripItem[] = [
     address: "Bairro da Liberdade — São Paulo",
     mapQuery: "Liberdade, São Paulo",
     image: IMG.liberdade,
+    wikiTitle: "Liberdade (bairro de São Paulo)",
+    imageSearch: "Liberdade São Paulo bairro lanternas",
     tips: [
       "Almoçar sem pressa",
       "Visitar as lojinhas da Rua Galvão Bueno",
@@ -193,6 +201,8 @@ export const ITINERARY: TripItem[] = [
     address: "Rua Muniz de Sousa, 1119 — Aclimação, São Paulo",
     mapQuery: "Parque da Aclimação",
     image: IMG.aclimacao,
+    wikiTitle: "Parque da Aclimação",
+    imageSearch: "Parque da Aclimação São Paulo lago",
     tips: ["Sentar perto do lago", "Caminhar sem destino", "Recuperar energia para o resto do dia"],
   },
   {
@@ -211,10 +221,16 @@ export const ITINERARY: TripItem[] = [
     dayOffset: 1,
     start: "17:40",
     end: "19:00",
-    title: "Destino secreto",
-    category: "secret",
+    title: "Sampa Sky",
+    description: "Um mirante de vidro a 150 metros do chão, no alto do Mirante do Vale. A ideia é chegar no fim da tarde e ver São Paulo acender lá embaixo.",
+    category: "place",
     moment: true,
-    secret: true,
+    address: "Edifício Mirante do Vale · Praça Pedro Lessa, 110 — Centro, São Paulo",
+    mapQuery: "Sampa Sky, São Paulo",
+    image: "https://images.pexels.com/photos/17007760/pexels-photo-17007760.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
+    wikiTitle: "Sampa Sky",
+    imageSearch: "Sampa Sky São Paulo Mirante do Vale",
+    tips: ["Chegar com a luz do fim de tarde", "Fotos no deck de vidro", "Ver a cidade acender lá embaixo"],
   },
   {
     id: "d2-transp-restaurante",
@@ -283,13 +299,12 @@ export const ITINERARY: TripItem[] = [
   },
 ];
 
-/** Mescla dados padrão e o segredo somente após descriptografia em memória. */
-export function resolveItems(state: AppState, secret: SecretInfo | null = null): TripItem[] {
+/** Mescla os dados padrão com hospedagem, restaurante e edições feitas no app. */
+export function resolveItems(state: AppState, _secret: SecretInfo | null = null): TripItem[] {
   const s = state.settings;
   return ITINERARY.map((base) => {
     const item: TripItem = { ...base, tips: base.tips ? [...base.tips] : undefined };
 
-    // injeta hospedagem / restaurante configurados
     if (item.id === "d1-chegada" && s.lodging) {
       item.title = `Hospedagem · ${s.lodging}`;
       item.address = s.lodgingAddress || item.address;
@@ -310,37 +325,8 @@ export function resolveItems(state: AppState, secret: SecretInfo | null = null):
       item.title = `Voltar para ${s.lodging}`;
     }
 
-    // Sem o payload AES descriptografado, nenhum dado real é aplicado.
-    if (item.secret) {
-      if (state.unlocked && secret) {
-        item.title = secret.name;
-        item.description = secret.description;
-        item.address = secret.address;
-        item.mapQuery = secret.mapQuery;
-        item.image = secret.image;
-        item.tips = [...secret.tips];
-      } else {
-        item.title = "Destino secreto";
-        item.description = "Um último lugar está esperando por você.";
-        item.address = undefined;
-        item.mapQuery = undefined;
-        item.image = undefined;
-        item.tips = undefined;
-        item.locked = true;
-      }
-    }
-
-    // edições do admin por cima de tudo
     const ov = state.overrides[item.id];
-    if (ov) {
-      if (item.locked) {
-        // bloqueado: nunca aplicar campos que entregam a surpresa
-        if (ov.start) item.start = ov.start;
-        if (ov.end) item.end = ov.end;
-      } else {
-        Object.assign(item, ov);
-      }
-    }
+    if (ov) Object.assign(item, ov);
     return item;
   });
 }
