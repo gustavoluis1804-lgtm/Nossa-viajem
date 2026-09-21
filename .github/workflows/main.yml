@@ -1,0 +1,62 @@
+name: Gerar APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Instalar dependências do projeto
+        run: npm install --no-audit --no-fund
+
+      - name: Instalar Capacitor para o build Android
+        run: npm install --no-save --no-audit --no-fund @capacitor/core@latest @capacitor/android@latest @capacitor/cli@latest
+
+      - name: Gerar site estático
+        run: npm run build
+
+      - name: Criar projeto Android
+        run: npx cap add android
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Dar permissão ao Gradle
+        run: chmod +x android/gradlew
+
+      - name: Compilar APK debug
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Publicar APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nossa-Viagem-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
